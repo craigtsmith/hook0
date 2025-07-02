@@ -11,12 +11,29 @@ permissions:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        image: [api, frontend, output-worker]
-        platform: [linux/amd64,linux/arm64]
+        include:
+          - image: api
+            platform: linux/amd64
+            runner: blacksmith-4vcpu-ubuntu-2204
+          - image: api
+            platform: linux/arm64
+            runner: blacksmith-4vcpu-ubuntu-2204-arm	
+          - image: frontend
+            platform: linux/amd64
+            runner: blacksmith-4vcpu-ubuntu-2204
+          - image: frontend
+            platform: linux/arm64
+            runner: blacksmith-4vcpu-ubuntu-2204-arm
+          - image: output-worker
+            platform: linux/amd64
+            runner: blacksmith-4vcpu-ubuntu-2204
+          - image: output-worker
+            platform: linux/arm64
+            runner: blacksmith-4vcpu-ubuntu-2204-arm
 
     steps:
       - name: Checkout repository
@@ -28,22 +45,22 @@ jobs:
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-            registry: ghcr.io
-            username: ${{ github.repository_owner }}
-            password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push ${{ matrix.image }} image
-        uses: docker/build-push-action@v5
+        uses: useblacksmith/build-push-action@v1
         with:
           context: .
           file: ${{ matrix.image }}/Dockerfile
           platforms: ${{ matrix.platform }}
-          cache-from: |
-            type=registry,ref=ghcr.io/${{ github.repository }}/${{ matrix.image }}:build-cache
-            type=gha
-          cache-to: |
-            type=registry,ref=ghcr.io/${{ github.repository }}/${{ matrix.image }}:build-cache,mode=max
-            type=gha,mode=max
+          # cache-from: |
+          #   type=registry,ref=ghcr.io/${{ github.repository }}/${{ matrix.image }}:build-cache
+          #   type=gha
+          # cache-to: |
+          #   type=registry,ref=ghcr.io/${{ github.repository }}/${{ matrix.image }}:build-cache,mode=max
+          #   type=gha,mode=max
           push: true
           build-args: |
             BUILDKIT_INLINE_CACHE=1
