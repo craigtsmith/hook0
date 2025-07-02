@@ -16,6 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         image: [api, frontend, output-worker]
+        platform: [linux/amd64,linux/arm64]
 
     steps:
       - name: Checkout repository
@@ -36,9 +37,16 @@ jobs:
         with:
           context: .
           file: ${{ matrix.image }}/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.platform }}
+          cache-from: |
+            type=registry,ref=ghcr.io/${{ github.repository }}/${{ matrix.image }}:build-cache
+            type=gha
+          cache-to: |
+            type=registry,ref=ghcr.io/${{ github.repository }}/${{ matrix.image }}:build-cache,mode=max
+            type=gha,mode=max
           push: true
           build-args: |
+            BUILDKIT_INLINE_CACHE=1
             ${{ matrix.image == 'api' && 'FEATURES=reqwest-rustls-tls-webpki-roots,application-secret-compatibility' || '' }}
           tags: |
             ghcr.io/${{ github.repository }}/${{ matrix.image }}:latest
